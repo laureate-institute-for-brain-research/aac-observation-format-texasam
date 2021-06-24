@@ -34,7 +34,7 @@ def getCondition(row):
 
     if ('PI' in positive) and ('PI' in negative): 
         return 2
-    if (('NI' in positive) and ('NI' in negative)) and ((pts_other + outcome_pts) == 0):
+    if ((pts_other + outcome_pts) == 0):
         return 1
 
     if (pts_other + outcome_pts) == 2:
