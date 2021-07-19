@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+#SBATCH --partition=c2_short
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --mem=6000
+#SBATCH --output=/media/cephfs/labs/NPC/Analysis/jtouthang/aac_observeration_action_extract/texas_am/ssub.stdout
+#SBATCH --error=/media/cephfs/labs/NPC/Analysis/jtouthang/aac_observeration_action_extract/texas_am/ssub.stderr
+#SBATCH --job-name=AAC_Conversion
+#SBATCH --mail-user=jtouthang@laureateinstitute.org
+#SBATCH --mail-type=END
+#SBATCH --workdir=/media/cephfs/labs/NPC/Analysis/jtouthang/aac_observeration_action_extract/texas_am
+#
+#################################################
+ 
+module load python
+
+for file in $(ls AAC_Data_cleaned_JS_071321); \
+    do echo $file;
+    python extract_single.py AAC_Data_cleaned_JS_071321/$file EXTRACT; \
+done
