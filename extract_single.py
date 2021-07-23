@@ -79,12 +79,45 @@ def isFlip(row):
 
     endPos = row['EndPos (end position of the avatar)']
 
+    # Avoid-Threat Condition
+    # Approach Reward Condition since neigther outcome and neither pts other have points
     if (ptsother + outcomepts) == 0:
-        if neg_image_side == 'L' and 'PI' in negative: return True
-        else: return False
+        if neg_image_side == 'L': 
+            # Side with the positive image is a 9
+            return False
+        else: 
+            return True
 
-    if (neg_image_side == 'L') and (endPos < 0) and (outcomepts > 0): return True
-    if (neg_image_side == 'R') and (endPos > 0) and (outcomepts > 0): return False
+    # Approach-Reward trials
+    # Points side should always on the right (9)
+    if 'PI' in positive and 'PI' in negative:
+        if ( (neg_image_side == 'L') and (ptsother > 0) ):
+            # This means, Right side has the points, so right side shoule be 9.
+            return False
+        if ( (neg_image_side == 'L') and (ptsother == 0) ):
+            # This means, Left side has the points, so Left side shoule be 9.
+            return True
+
+        if ( (neg_image_side == 'R') and (ptsother > 0) ):
+            # This means, Left side has the points, so right should be 1
+            return True
+
+        if ( (neg_image_side == 'R') and (ptsother == 0) ):
+            # This means, Left side has the points, so right should be 1
+            return True
+
+
+    # If it gets to here, it means, it must be conflict trials
+    # Regular Trial with one side + and other side -
+    # So Follow the rules based on where the neg image is.
+    if 'NI' in negative:
+        if ( neg_image_side == 'L'):
+            # Negative Image is on the left, so 9 should be on the left
+            return True
+        if (neg_image_side == 'R'):
+            # Negative image ins on the right, so 9 should be on the right
+            return False
+
 
 
     # Default is True
@@ -99,7 +132,6 @@ def getFinalPosition(row):
     """
     Return final position mapping
     """
-    startingPosition = returnFirstPosition(row)
     finalPos = row['EndPos (end position of the avatar)']
 
     positions = [1,2,3,4,5,6,7,8,9]
@@ -120,8 +152,7 @@ def getFinalPosition(row):
     positionMap[3.0] = positions[7]
     positionMap[4.0] = positions[8]
 
-    finalStep = startingPosition
-    return positionMap[startingPosition]
+    return positionMap[finalPos]
 
 
 def getFirstPosition(row):
