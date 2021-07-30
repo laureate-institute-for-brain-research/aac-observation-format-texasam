@@ -10,7 +10,11 @@ import numpy as np
 import sys,os
 
 
-def getCondition(row):
+ # Get the schedule input file
+scheduleAAC = pd.read_csv('AAC_all.csv', low_memory = False,error_bad_lines=False)
+#print scheduleAAC.columns
+
+def getCondition(idx):
     """
     Return Condition of the Trial
 
@@ -26,28 +30,48 @@ def getCondition(row):
     trial_type str
         5 digit of the Trial Type
     """
-   
-    pts_other = row['PtsOther']
-    outcome_pts = row['OutcomePts (Pts received)']
-    positive = row['Piname (name of positive image file)']
-    negative = row['Niname (name of negative image file)']
+    global scheduleAAC
 
-    if ('PI' in positive) and ('PI' in negative): 
-        return 2
-    if ((pts_other + outcome_pts) == 0):
-        return 1
+    left_reward = scheduleAAC['1 left reward'][idx]
+    right_reward = scheduleAAC['2 right reward'][idx]
 
-    if (pts_other + outcome_pts) == 2:
-        return 3
-    if (pts_other + outcome_pts) == 4:
-        return 4
-    if (pts_other + outcome_pts) == 6:
-        return 5
+    left_image = scheduleAAC['3 stim left image'][idx] 
+    right_image = scheduleAAC['5 stim right image'][idx]
+
+
+    # Approach Reward since both sides are positive, but one side has points
+    if ('PI' in left_image) and ('PI' in right_image):
+        if (left_reward + right_reward) > 0: return 2
+
+    # Avoid-Threat
+    # Both sides have no points but one of the sides has a negative image
+    if (left_reward + right_reward) == 0: return 1
+
+    # Conflict Trials
+    if (left_reward + right_reward) == 2: return 3
+    if (left_reward + right_reward) == 4: return 4
+    if (left_reward + right_reward) == 6: return 5
+
+
+
+
+
+    # if ('PI' in positive) and ('PI' in negative): 
+    #     return 2
+    # if ((pts_other + outcome_pts) == 0):
+    #     return 1
+
+    # if (pts_other + outcome_pts) == 2:
+    #     return 3
+    # if (pts_other + outcome_pts) == 4:
+    #     return 4
+    # if (pts_other + outcome_pts) == 6:
+    #     return 5
 
     # Should never receive 0
     return 0
 
-def isFlip(row):
+def isFlip(idx):
     """
     Returns to True if the position numbering needs to be flip
 
@@ -70,55 +94,29 @@ def isFlip(row):
     trial_type str
         5 digit of the Trial Type e.g 10400
     """
-    ptsother = row['PtsOther']
-    outcomepts = row['OutcomePts (Pts received)']
+    global scheduleAAC
 
-    neg_image_side = row['Negative Image Side (1=L and 0=R)']
-    positive = row['Piname (name of positive image file)']
-    negative = row['Niname (name of negative image file)']
-
-    endPos = row['EndPos (end position of the avatar)']
-
-    # Avoid-Threat Condition
-    # Approach Reward Condition since neigther outcome and neither pts other have points
-    if (ptsother + outcomepts) == 0:
-        if neg_image_side == 'L': 
-            # Side with the positive image is a 9
-            return False
-        else: 
-            return True
-
-    # Approach-Reward trials
-    # Points side should always on the right (9)
-    if 'PI' in positive and 'PI' in negative:
-        if ( (neg_image_side == 'L') and (ptsother > 0) ):
-            # This means, Right side has the points, so right side shoule be 9.
-            return False
-        if ( (neg_image_side == 'L') and (ptsother == 0) ):
-            # This means, Left side has the points, so Left side shoule be 9.
-            return True
-
-        if ( (neg_image_side == 'R') and (ptsother > 0) ):
-            # This means, Left side has the points, so right should be 1
-            return True
-
-        if ( (neg_image_side == 'R') and (ptsother == 0) ):
-            # This means, Left side has the points, so right should be 1
-            return True
+    left_reward = scheduleAAC['1 left reward'][idx]
+    right_reward = scheduleAAC['2 right reward'][idx]
 
 
-    # If it gets to here, it means, it must be conflict trials
-    # Regular Trial with one side + and other side -
-    # So Follow the rules based on where the neg image is.
-    if 'NI' in negative:
-        if ( neg_image_side == 'L'):
-            # Negative Image is on the left, so 9 should be on the left
-            return True
-        if (neg_image_side == 'R'):
-            # Negative image ins on the right, so 9 should be on the right
-            return False
+    left_image = scheduleAAC['3 stim left image'][idx]
+    right_image = scheduleAAC['5 stim right image'][idx]
 
 
+
+    # Side with the points is the side withe a 9
+    if (left_reward > 0): return True
+    
+    if (right_reward > 0): return False
+
+    # If there's no points, than it mus mean, avoid threat
+    # So 9 should be the side withe positive image.
+    if ((left_reward + right_reward) == 0):
+        if 'PI' in right_image: return False
+        if 'PI' in left_image: return True
+
+    
 
     # Default is True
     return True
@@ -128,7 +126,7 @@ def returnFirstPosition(row):
     startingPosition = row['StartPos (starting position of the avatar)']
     return startingPosition
 
-def getFinalPosition(row):
+def getFinalPosition(idx, row):
     """
     Return final position mapping
     """
@@ -137,7 +135,7 @@ def getFinalPosition(row):
     positions = [1,2,3,4,5,6,7,8,9]
 
     # Flipt the positions based on trial_type
-    if isFlip(row):
+    if isFlip(idx):
         positions.reverse()
 
     # Mapping the Task Position with new mapping
@@ -155,7 +153,7 @@ def getFinalPosition(row):
     return positionMap[finalPos]
 
 
-def getFirstPosition(row):
+def getFirstPosition(idx,row):
     """
     Return First position mapping
     """
@@ -164,7 +162,7 @@ def getFirstPosition(row):
     positions = [1,2,3,4,5,6,7,8,9]
 
     # Flipt the positions based on row
-    if isFlip(row):
+    if isFlip(idx):
         positions.reverse()
 
     # Mapping the Task Position with new mapping
@@ -202,7 +200,7 @@ def getObservation1FinalPosition(row):
     rightValence = int(trial_type[1])
     leftReward = int(trial_type[2])
     rightReward = int(trial_type[3])
-    startingPosition = returnFirstPosition(trial_type)
+    startingPosition = returnFirstPosition(row)
 
     finalStep = startingPosition
     try:
@@ -293,6 +291,7 @@ def getObservation1(row):
     All ones for each move until final position
 
     """
+
     firstPosition = row['StartPos (starting position of the avatar)']
     finalsequence = []
     finalsequence.append(1) # o1_0 needs to awlways be 1
@@ -304,19 +303,19 @@ def getObservation1(row):
     return finalsequence
 
 
-def getObservation2(row):
+def getObservation2(idx):
     """
     Return Data for Observation 2 which is conidition repeated 9 times
     """
-    return [ getCondition(row) for x in range(0,2)]
+    return [ getCondition(idx) for x in range(0,2)]
 
 
-def getObservation3(row):
+def getObservation3(idx, row):
     """
     Return Data sequency for Observation 3 which is the position number and final position summation
     """
-    firstPosMap = getFirstPosition(row)
-    lastPosMap = getFinalPosition(row)
+    firstPosMap = getFirstPosition(idx, row)
+    lastPosMap = getFinalPosition(idx, row)
     sequence = []
 
     finalStep = firstPosMap
@@ -351,6 +350,8 @@ def extractInfo(file, outputdir='.'):
     """
     Main Function to extract data
     """
+   
+
     try:
         aacFile = pd.read_csv(file, low_memory = False,error_bad_lines=False)
         print list(aacFile.columns)
@@ -387,9 +388,9 @@ def extractInfo(file, outputdir='.'):
         #outcome = outcomeDictionary[trial]
 
         obs1 = getObservation1(row) # o1
-        obs2 = getObservation2(row) # o2
-        obs3 = getObservation3(row) # o3
-        u_ = getObservation3(row) # u
+        obs2 = getObservation2(index) # o2
+        obs3 = getObservation3(index, row) # o3
+        u_ = getObservation3(index, row) # u
 
         [ outputrow.append(value) for value in obs1]
         [ outputrow.append(value) for value in obs2]
